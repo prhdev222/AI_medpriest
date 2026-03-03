@@ -33,24 +33,26 @@
             id="gateOverlay"
             class="fixed inset-0 z-20 flex items-center justify-center bg-slate-950/80 backdrop-blur"
           >
-            <div class="w-full max-w-xs rounded-xl border border-slate-800 bg-slate-900 px-4 py-5 space-y-3 text-xs">
-              <h2 class="text-sm font-medium text-slate-50">เข้าสู่ MedPriest Analytics AI</h2>
-              <p class="text-slate-400">
-                กรุณาใส่รหัสเข้าใช้งาน (ไม่เกี่ยวกับ HN หรือข้อมูลผู้ป่วย) เพื่อป้องกันการใช้งานเกินจำเป็น
+            <div class="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900 px-6 py-6 space-y-4 text-base md:text-lg">
+              <h2 class="text-xl md:text-2xl font-semibold text-slate-50 text-center">
+                เข้าสู่ MedPriest Analytics AI
+              </h2>
+              <p class="text-slate-300 text-center">
+                ใช้ AI วิเคราะห์ตัวเลขคุณภาพบริการจากข้อมูลสรุปเท่านั้น ไม่มีการเข้าถึง HN หรือข้อมูลผู้ป่วย
               </p>
-              <div class="space-y-1">
-                <label for="gatePin" class="block text-slate-300">รหัสเข้าใช้ (Site PIN)</label>
+              <div class="space-y-2">
+                <label for="gatePin" class="block text-slate-100 font-medium">รหัสเข้าใช้ (Site PIN)</label>
                 <input
                   id="gatePin"
                   type="password"
-                  class="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  class="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-base md:text-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   autocomplete="off"
                 />
               </div>
-              <p id="gateError" class="text-[11px] text-rose-400 hidden"></p>
+              <p id="gateError" class="text-sm md:text-base text-rose-400 hidden"></p>
               <button
                 id="gateSubmit"
-                class="w-full rounded-md bg-emerald-500 py-1.5 text-[11px] font-medium text-slate-950 hover:bg-emerald-400"
+                class="w-full rounded-md bg-emerald-500 py-2.5 text-base md:text-lg font-semibold text-slate-950 hover:bg-emerald-400"
               >
                 เข้าสู่ระบบ
               </button>

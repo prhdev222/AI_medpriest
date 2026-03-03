@@ -218,10 +218,10 @@ async function fetchAggregatedMetrics(
 ) {
   const { from, to, ward } = params;
 
-  // Safe defaults: last 7 days if no date provided
+  // Safe defaults: last 30 days if no date provided
   const now = new Date();
   const defaultTo = now.toISOString().slice(0, 10);
-  const defaultFrom = new Date(now.getTime() - 6 * 86400000)
+  const defaultFrom = new Date(now.getTime() - 29 * 86400000)
     .toISOString()
     .slice(0, 10);
 
