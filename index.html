@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>MedPriest Analytics AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-slate-950 text-slate-50">
+    <div class="min-h-screen flex flex-col">
+      <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+          <div>
+            <h1 class="text-xl font-semibold tracking-tight">
+              MedPriest Analytics <span class="text-emerald-400">AI</span>
+            </h1>
+            <p class="text-xs text-slate-400">
+              Privacy-first, read-only hospital analytics dashboard
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+            <span class="px-2 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10">
+              PDPA-aligned · No HN · Aggregated only
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <main class="flex-1">
+        <div class="max-w-3xl mx-auto px-4 py-8 space-y-4">
+          <!-- Simple access gate -->
+          <div
+            id="gateOverlay"
+            class="fixed inset-0 z-20 flex items-center justify-center bg-slate-950/80 backdrop-blur"
+          >
+            <div class="w-full max-w-xs rounded-xl border border-slate-800 bg-slate-900 px-4 py-5 space-y-3 text-xs">
+              <h2 class="text-sm font-medium text-slate-50">เข้าสู่ MedPriest Analytics AI</h2>
+              <p class="text-slate-400">
+                กรุณาใส่รหัสเข้าใช้งาน (ไม่เกี่ยวกับ HN หรือข้อมูลผู้ป่วย) เพื่อป้องกันการใช้งานเกินจำเป็น
+              </p>
+              <div class="space-y-1">
+                <label for="gatePin" class="block text-slate-300">รหัสเข้าใช้ (Site PIN)</label>
+                <input
+                  id="gatePin"
+                  type="password"
+                  class="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  autocomplete="off"
+                />
+              </div>
+              <p id="gateError" class="text-[11px] text-rose-400 hidden"></p>
+              <button
+                id="gateSubmit"
+                class="w-full rounded-md bg-emerald-500 py-1.5 text-[11px] font-medium text-slate-950 hover:bg-emerald-400"
+              >
+                เข้าสู่ระบบ
+              </button>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <h2 class="text-lg font-medium">MedPriest AI Chat</h2>
+            <p class="text-xs text-slate-400">
+              พิมพ์คำถามเกี่ยวกับสถานการณ์ IPD/OPD หรือการ delay discharge ระบบจะอ่านเฉพาะตัวเลขรวมจาก database (ไม่อ่าน HN)
+            </p>
+            <div class="grid gap-2 md:grid-cols-2 text-[11px]">
+              <div class="space-y-1">
+                <label for="wardSelect" class="block text-slate-300">เลือก ward / หน่วยบริการ</label>
+                <select
+                  id="wardSelect"
+                  class="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                >
+                  <option value="">ทุก ward</option>
+                  <option value="MED1">MED1</option>
+                  <option value="MED2">MED2</option>
+                  <option value="IMC">IMC</option>
+                  <option value="WARD90">WARD90</option>
+                  <option value="ICU">ICU</option>
+                  <option value="OPD">OPD</option>
+                  <option value="ER">ER</option>
+                  <option value="CONSULT">Consult</option>
+                </select>
+              </div>
+              <div class="space-y-1">
+                <label for="presetSelect" class="block text-slate-300">คำถามยอดฮิต (KPI)</label>
+                <select
+                  id="presetSelect"
+                  class="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                >
+                  <option value="">-- เลือกคำถามยอดฮิต --</option>
+                  <option value="los_trend_7">
+                    แนวโน้ม LOS เฉลี่ย 7 วันล่าสุด
+                  </option>
+                  <option value="admit_discharge_7">
+                    จำนวน admit / discharge 7 วันล่าสุด
+                  </option>
+                  <option value="delay_overview_30">
+                    ภาพรวม delayed discharge 30 วัน
+                  </option>
+                  <option value="delay_reason">
+                    เหตุผลหลักที่ทำให้ discharge delay
+                  </option>
+                  <option value="icu_burden">
+                    ภาระงาน/ความหนาแน่นเตียง ICU ช่วงล่าสุด
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col h-[460px]">
+            <div
+              id="chatMessages"
+              class="flex-1 overflow-auto p-3 space-y-2 text-xs scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900"
+            ></div>
+            <div class="flex items-center justify-end gap-2 px-3 py-1.5 border-t border-slate-800 text-[10px]">
+              <button
+                id="copyLastAnswerBtn"
+                class="rounded-md border border-slate-700 px-2 py-1 text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                คัดลอกคำตอบล่าสุด
+              </button>
+              <button
+                id="printPageBtn"
+                class="rounded-md border border-slate-700 px-2 py-1 text-slate-300 hover:bg-slate-800"
+              >
+                พิมพ์หน้านี้
+              </button>
+            </div>
+            <form id="chatForm" class="border-t border-slate-800 p-3 space-y-3">
+              <textarea
+                id="chatInput"
+                rows="4"
+                placeholder="ถามเช่น: สถานการณ์ LOS เฉลี่ยของ ward MED2 7 วันที่ผ่านมามีแนวโน้มอย่างไร?"
+                class="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+              ></textarea>
+              <details class="rounded-md border border-slate-800 bg-slate-950/60 px-3 py-2 text-[10px] text-slate-400">
+                <summary class="cursor-pointer select-none text-slate-300">
+                  ตั้งค่า AI ขั้นสูง (สำหรับใส่ API key และ model ชั่วคราว)
+                </summary>
+                <div class="mt-2 space-y-2">
+                  <p>
+                    ใช้กรณีต้องการต่อกับโมเดลแบบจ่ายเงินของตัวเองผ่าน OpenRouter (เช่น
+                    OpenAI, Claude, Gemini, Z.ai) โดยระบบจะใช้ค่านี้เฉพาะ request นั้น ๆ
+                    และไม่บันทึก key ลงฐานข้อมูล
+                  </p>
+                  <div class="grid gap-2 md:grid-cols-3">
+                    <div class="space-y-1">
+                      <label for="adminPin" class="block text-slate-300">รหัสผู้ดูแล (PIN)</label>
+                      <input
+                        id="adminPin"
+                        type="password"
+                        class="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div class="space-y-1 md:col-span-2">
+                      <label for="tempApiKey" class="block text-slate-300">OpenRouter API key ชั่วคราว</label>
+                      <input
+                        id="tempApiKey"
+                        type="password"
+                        class="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        autocomplete="off"
+                      />
+                    </div>
+                  </div>
+                  <div class="space-y-1">
+                    <label for="tempModel" class="block text-slate-300">Model ID</label>
+                    <input
+                      id="tempModel"
+                      type="text"
+                      placeholder="เช่น openai/gpt-4o-mini หรือ meta-llama/llama-3.3-70b-instruct:free"
+                      class="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      autocomplete="off"
+                    />
+                  </div>
+                </div>
+              </details>
+              <div class="flex items-center justify-between gap-2 text-[10px]">
+                <p class="text-slate-500">
+                  AI ไม่สามารถเห็น HN หรือข้อมูลที่ระบุตัวบุคคลได้ และจะปฏิเสธคำถามที่ขอข้อมูล PHI
+                </p>
+                <button
+                  id="chatSendBtn"
+                  class="inline-flex items-center gap-1 rounded-md bg-emerald-500 px-3 py-1.5 text-[11px] font-medium text-slate-950 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  ส่งคำถาม
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </main>
+
+      <footer class="border-t border-slate-800 bg-slate-900/80">
+        <div class="max-w-6xl mx-auto px-4 py-3 text-[10px] text-slate-500 flex flex-wrap items-center justify-between gap-2">
+          <span>© 2026 directed by Uradev</span>
+          <span>สร้างด้วยใจ เพื่อแผนกอายุรกรรม รักและสามัคคีกัน</span>
+        </div>
+      </footer>
+    </div>
+
+    <script>
+      const chatMessages = document.getElementById("chatMessages");
+      const chatForm = document.getElementById("chatForm");
+      const chatInput = document.getElementById("chatInput");
+      const chatSendBtn = document.getElementById("chatSendBtn");
+      const adminPinInput = document.getElementById("adminPin");
+      const tempApiKeyInput = document.getElementById("tempApiKey");
+      const tempModelInput = document.getElementById("tempModel");
+      const gateOverlay = document.getElementById("gateOverlay");
+      const gatePinInput = document.getElementById("gatePin");
+      const gateSubmit = document.getElementById("gateSubmit");
+      const gateError = document.getElementById("gateError");
+      const copyLastAnswerBtn = document.getElementById("copyLastAnswerBtn");
+      const printPageBtn = document.getElementById("printPageBtn");
+      const wardSelect = document.getElementById("wardSelect");
+      const presetSelect = document.getElementById("presetSelect");
+
+      let lastAssistantText = "";
+
+      function appendMessage(role, text) {
+        const wrapper = document.createElement("div");
+        wrapper.className = role === "user" ? "text-right" : "text-left";
+
+        const bubble = document.createElement("div");
+        bubble.className =
+          "inline-block rounded-lg px-3 py-2 text-[11px] max-w-[90%] " +
+          (role === "user"
+            ? "bg-emerald-500 text-slate-950"
+            : "bg-slate-800 text-slate-50");
+        bubble.textContent = text;
+
+        wrapper.appendChild(bubble);
+        chatMessages.appendChild(wrapper);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        if (role === "assistant") {
+          lastAssistantText = text;
+          if (copyLastAnswerBtn) copyLastAnswerBtn.disabled = false;
+        }
+      }
+
+      function setGateError(message) {
+        if (!gateError) return;
+        if (!message) {
+          gateError.classList.add("hidden");
+          gateError.textContent = "";
+        } else {
+          gateError.classList.remove("hidden");
+          gateError.textContent = message;
+        }
+      }
+
+      // Gate submit handler (only checks non-empty; validation จริงทำที่ backend)
+      gateSubmit?.addEventListener("click", () => {
+        const pin = gatePinInput?.value.trim();
+        if (!pin) {
+          setGateError("กรุณากรอกรหัสเข้าใช้งานก่อน");
+          return;
+        }
+        sessionStorage.setItem("sitePin", pin);
+        gateOverlay?.classList.add("hidden");
+        setGateError("");
+      });
+
+      window.addEventListener("load", () => {
+        const existing = sessionStorage.getItem("sitePin");
+        if (existing) {
+          gateOverlay?.classList.add("hidden");
+        }
+
+        if (copyLastAnswerBtn) {
+          copyLastAnswerBtn.disabled = true;
+        }
+      });
+
+      copyLastAnswerBtn?.addEventListener("click", async () => {
+        if (!lastAssistantText) return;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(lastAssistantText);
+          } else {
+            const ta = document.createElement("textarea");
+            ta.value = lastAssistantText;
+            ta.style.position = "fixed";
+            ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+          }
+        } catch (e) {
+          console.error("copy failed", e);
+        }
+      });
+
+      printPageBtn?.addEventListener("click", () => {
+        window.print();
+      });
+
+      presetSelect?.addEventListener("change", () => {
+        const preset = presetSelect.value;
+        if (!preset) return;
+        const ward = wardSelect?.value || "";
+        const wardText = ward ? `ward ${ward}` : "ทุก ward";
+
+        let q = "";
+        if (preset === "los_trend_7") {
+          q = `ช่วยสรุปแนวโน้ม LOS เฉลี่ยของ ${wardText} ในช่วง 7 วันที่ผ่านมา ว่ามีค่าประมาณเท่าไร และมีแนวโน้มเพิ่มขึ้นหรือลดลงอย่างไร`;
+        } else if (preset === "admit_discharge_7") {
+          q = `ขอดูจำนวน admit และ discharge ของ ${wardText} ในช่วง 7 วันที่ผ่านมา พร้อมคำอธิบายว่ามีวันที่ workload สูงผิดปกติหรือไม่`;
+        } else if (preset === "delay_overview_30") {
+          q = `ช่วยสรุปภาพรวม delayed discharge ของ ${wardText} ในช่วง 30 วันที่ผ่านมา ว่ามีเคสจำนวนเท่าไร และค่า delay เฉลี่ยประมาณกี่วัน`;
+        } else if (preset === "delay_reason") {
+          q = `จากข้อมูล delay discharge ในช่วงล่าสุด สาเหตุหลักที่ทำให้ discharge ช้าของ ${wardText} คืออะไร และมีข้อเสนอแนะเชิงปฏิบัติอย่างไร`;
+        } else if (preset === "icu_burden") {
+          q = `ช่วยอธิบายภาระงานและความหนาแน่นเตียงของ ICU ช่วง 7–14 วันที่ผ่านมา เทียบกับ ward อื่น ๆ ว่ามีจุดไหนที่ควรจับตาเป็นพิเศษ`;
+        }
+
+        if (q) {
+          chatInput.value = q;
+          chatInput.focus();
+        }
+      });
+
+      chatForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const content = chatInput.value.trim();
+        if (!content) return;
+
+        const sitePin = sessionStorage.getItem("sitePin") || "";
+        if (!sitePin) {
+          gateOverlay?.classList.remove("hidden");
+          setGateError("กรุณากรอกรหัสเข้าใช้งานก่อนถามคำถาม");
+          return;
+        }
+
+        // frontend rate limit: 10 คำถาม / ชั่วโมง / browser
+        const raw = sessionStorage.getItem("chatTimestamps");
+        const now = Date.now();
+        const oneHour = 60 * 60 * 1000;
+        let timestamps = [];
+        if (raw) {
+          try {
+            timestamps = JSON.parse(raw);
+          } catch {
+            timestamps = [];
+          }
+        }
+        timestamps = timestamps.filter((t) => now - t < oneHour);
+        if (timestamps.length >= 10) {
+          appendMessage(
+            "assistant",
+            "คุณใช้ครบ 10 คำถามต่อชั่วโมงสำหรับเบราว์เซอร์นี้แล้วค่ะ โปรดรอสักพักก่อนถามคำถามใหม่ เพื่อควบคุมค่าใช้จ่ายและป้องกันการใช้งานเกินจำเป็น",
+          );
+          return;
+        }
+        timestamps.push(now);
+        sessionStorage.setItem("chatTimestamps", JSON.stringify(timestamps));
+
+        appendMessage("user", content);
+        chatInput.value = "";
+        chatSendBtn.disabled = true;
+        chatSendBtn.textContent = "กำลังประมวลผล...";
+        try {
+          const body = { question: content, sitePin };
+
+          // แนบค่า override ชั่วคราวเฉพาะเมื่อมี PIN กรอกมา
+          const pin = adminPinInput?.value.trim();
+          const tempKey = tempApiKeyInput?.value.trim();
+          const tempModel = tempModelInput?.value.trim();
+
+          if (pin) {
+            body.adminPin = pin;
+            if (tempKey) body.tempApiKey = tempKey;
+            if (tempModel) body.tempModel = tempModel;
+          }
+
+          const res = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            if (data && data.error === "invalid_site_pin") {
+              sessionStorage.removeItem("sitePin");
+              gateOverlay?.classList.remove("hidden");
+              setGateError("รหัสเข้าใช้งานไม่ถูกต้อง โปรดลองใหม่อีกครั้ง");
+              throw new Error("Invalid site PIN");
+            }
+            throw new Error("Chat API error");
+          }
+          const data = await res.json();
+          appendMessage("assistant", data.answer || "ระบบยังไม่สามารถตอบคำถามนี้ได้");
+        } catch (err) {
+          console.error(err);
+          appendMessage(
+            "assistant",
+            "ไม่สามารถติดต่อ AI backend ได้ โปรดตรวจสอบการตั้งค่า OpenRouter และ Cloudflare Functions"
+          );
+        } finally {
+          chatSendBtn.disabled = false;
+          chatSendBtn.textContent = "ส่งคำถาม";
+        }
+      });
+    </script>
+  </body>
+</html>
+
