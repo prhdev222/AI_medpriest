@@ -6,15 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body class="bg-slate-950 text-slate-50">
+  <body class="bg-slate-950 text-slate-50 text-base md:text-lg">
     <div class="min-h-screen flex flex-col">
       <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
         <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <div>
-            <h1 class="text-xl font-semibold tracking-tight">
+            <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">
               MedPriest Analytics <span class="text-emerald-400">AI</span>
             </h1>
-            <p class="text-xs text-slate-400">
+            <p class="text-base md:text-lg text-slate-300">
               Privacy-first, read-only hospital analytics dashboard
             </p>
           </div>
@@ -57,14 +57,14 @@
             </div>
           </div>
 
-          <div class="space-y-2">
-            <h2 class="text-lg font-medium">MedPriest AI Chat</h2>
-            <p class="text-xs text-slate-400">
+          <div class="space-y-3">
+            <h2 class="text-xl md:text-2xl font-semibold">MedPriest AI Chat</h2>
+            <p class="text-base md:text-lg text-slate-300">
               พิมพ์คำถามเกี่ยวกับสถานการณ์ IPD/OPD หรือการ delay discharge ระบบจะอ่านเฉพาะตัวเลขรวมจาก database (ไม่อ่าน HN)
             </p>
-            <div class="grid gap-2 md:grid-cols-2 text-[11px]">
+            <div class="grid gap-3 md:grid-cols-2 text-xs md:text-sm">
               <div class="space-y-1">
-                <label for="wardSelect" class="block text-slate-300">เลือก ward / หน่วยบริการ</label>
+                <label for="wardSelect" class="block text-slate-100 font-medium">เลือก ward / หน่วยบริการ</label>
                 <select
                   id="wardSelect"
                   class="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500"
@@ -81,7 +81,7 @@
                 </select>
               </div>
               <div class="space-y-1">
-                <label for="presetSelect" class="block text-slate-300">คำถามยอดฮิต (KPI)</label>
+                <label for="presetSelect" class="block text-slate-100 font-medium">คำถามยอดฮิต (KPI)</label>
                 <select
                   id="presetSelect"
                   class="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500"
@@ -102,17 +102,29 @@
                   <option value="icu_burden">
                     ภาระงาน/ความหนาแน่นเตียง ICU ช่วงล่าสุด
                   </option>
+                  <option value="opd_trend_30">
+                    แนวโน้ม OPD visit 30 วันล่าสุด
+                  </option>
+                  <option value="er_trend_30">
+                    แนวโน้ม ER visit 30 วันล่าสุด
+                  </option>
+                  <option value="consult_trend_30">
+                    แนวโน้ม consult เคส 30 วันล่าสุด
+                  </option>
+                  <option value="procedure_mix_30">
+                    mix ของหัตถการหลักใน 30 วันล่าสุด
+                  </option>
                 </select>
               </div>
             </div>
           </div>
 
-          <div class="rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col h-[460px]">
+          <div class="rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col h-[520px] md:h-[560px]">
             <div
               id="chatMessages"
               class="flex-1 overflow-auto p-3 space-y-2 text-xs scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900"
             ></div>
-            <div class="flex items-center justify-end gap-2 px-3 py-1.5 border-t border-slate-800 text-[10px]">
+            <div class="flex items-center justify-end gap-2 px-3 py-2 border-t border-slate-800 text-xs md:text-sm">
               <button
                 id="copyLastAnswerBtn"
                 class="rounded-md border border-slate-700 px-2 py-1 text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -126,14 +138,14 @@
                 พิมพ์หน้านี้
               </button>
             </div>
-            <form id="chatForm" class="border-t border-slate-800 p-3 space-y-3">
+            <form id="chatForm" class="border-t border-slate-800 p-3 space-y-4">
               <textarea
                 id="chatInput"
                 rows="4"
                 placeholder="ถามเช่น: สถานการณ์ LOS เฉลี่ยของ ward MED2 7 วันที่ผ่านมามีแนวโน้มอย่างไร?"
-                class="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                class="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
               ></textarea>
-              <details class="rounded-md border border-slate-800 bg-slate-950/60 px-3 py-2 text-[10px] text-slate-400">
+              <details class="rounded-md border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs md:text-sm text-slate-300">
                 <summary class="cursor-pointer select-none text-slate-300">
                   ตั้งค่า AI ขั้นสูง (สำหรับใส่ API key และ model ชั่วคราว)
                 </summary>
@@ -145,7 +157,7 @@
                   </p>
                   <div class="grid gap-2 md:grid-cols-3">
                     <div class="space-y-1">
-                      <label for="adminPin" class="block text-slate-300">รหัสผู้ดูแล (PIN)</label>
+                    <label for="adminPin" class="block text-slate-100">รหัสผู้ดูแล (PIN)</label>
                       <input
                         id="adminPin"
                         type="password"
@@ -154,7 +166,7 @@
                       />
                     </div>
                     <div class="space-y-1 md:col-span-2">
-                      <label for="tempApiKey" class="block text-slate-300">OpenRouter API key ชั่วคราว</label>
+                      <label for="tempApiKey" class="block text-slate-100">OpenRouter API key ชั่วคราว</label>
                       <input
                         id="tempApiKey"
                         type="password"
@@ -164,7 +176,7 @@
                     </div>
                   </div>
                   <div class="space-y-1">
-                    <label for="tempModel" class="block text-slate-300">Model ID</label>
+                    <label for="tempModel" class="block text-slate-100">Model ID</label>
                     <input
                       id="tempModel"
                       type="text"
@@ -224,7 +236,7 @@
 
         const bubble = document.createElement("div");
         bubble.className =
-          "inline-block rounded-lg px-3 py-2 text-[11px] max-w-[90%] " +
+          "inline-block rounded-lg px-3 py-2 text-[13px] md:text-sm max-w-[90%] " +
           (role === "user"
             ? "bg-emerald-500 text-slate-950"
             : "bg-slate-800 text-slate-50");
@@ -315,6 +327,14 @@
           q = `จากข้อมูล delay discharge ในช่วงล่าสุด สาเหตุหลักที่ทำให้ discharge ช้าของ ${wardText} คืออะไร และมีข้อเสนอแนะเชิงปฏิบัติอย่างไร`;
         } else if (preset === "icu_burden") {
           q = `ช่วยอธิบายภาระงานและความหนาแน่นเตียงของ ICU ช่วง 7–14 วันที่ผ่านมา เทียบกับ ward อื่น ๆ ว่ามีจุดไหนที่ควรจับตาเป็นพิเศษ`;
+        } else if (preset === "opd_trend_30") {
+          q = `ช่วยสรุปแนวโน้มจำนวนผู้มารับบริการ OPD ของ ${wardText} ในช่วง 30 วันที่ผ่านมา ว่ามีวันไหนที่ปริมาณผู้ป่วยสูงหรือต่ำผิดปกติ และควรเตรียมทรัพยากรอย่างไร`;
+        } else if (preset === "er_trend_30") {
+          q = `ช่วยอธิบายแนวโน้มจำนวนผู้ป่วยmedที่ได้รับปรึกษาที่ ER ในช่วง 30 วันที่ผ่านมา ว่ามี pattern การมาที่ชัดเจนไหม (เช่น วันจันทร์/สุดสัปดาห์) และมีผลต่อการจัดเวรแพทย์/พยาบาลอย่างไร`;
+        } else if (preset === "consult_trend_30") {
+          q = `ช่วยสรุปจำนวน consult เคสจาก ER/ward ไปยังทีมอายุรกรรมในช่วง 30 วันที่ผ่านมา ว่ามีแนวโน้มเพิ่มขึ้นหรือลดลง และมีช่วงเวลาที่ workload หนักเป็นพิเศษหรือไม่`;
+        } else if (preset === "procedure_mix_30") {
+          q = `จากข้อมูล procedures ในช่วง 30 วันที่ผ่านมา ช่วยวิเคราะห์ case mix ของหัตถการที่ทำใน ${wardText} ว่าหัตถการไหนเป็นสัดส่วนหลัก แนวโน้มเปลี่ยนแปลงอย่างไร และมีข้อเสนอแนะด้านทรัพยากร/ทักษะแพทย์พยาบาลหรือไม่`;
         }
 
         if (q) {
