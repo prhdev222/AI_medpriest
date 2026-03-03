@@ -278,12 +278,103 @@ async function fetchAggregatedMetrics(
     mean_delay_days: number;
   }>();
 
+  // 3) OPD: ตาราง opd (ไม่มี HN)
+  const opdSql = `
+    SELECT
+      date,
+      count
+    FROM opd
+    WHERE date BETWEEN ? AND ?
+    ORDER BY date ASC
+  `;
+  const opdStmt = db.prepare(opdSql);
+  const opd = await opdStmt.bind(dateFrom, dateTo).all<{
+    date: string;
+    count: number;
+  }>();
+
+  // 4) ER: ตาราง er (ไม่มี HN)
+  const erSql = `
+    SELECT
+      date,
+      count
+    FROM er
+    WHERE date BETWEEN ? AND ?
+    ORDER BY date ASC
+  `;
+  const erStmt = db.prepare(erSql);
+  const er = await erStmt.bind(dateFrom, dateTo).all<{
+    date: string;
+    count: number;
+  }>();
+
+  // 5) Consult: ตาราง consult (ไม่มี HN)
+  const consultSql = `
+    SELECT
+      date,
+      count
+    FROM consult
+    WHERE date BETWEEN ? AND ?
+    ORDER BY date ASC
+  `;
+  const consultStmt = db.prepare(consultSql);
+  const consult = await consultStmt.bind(dateFrom, dateTo).all<{
+    date: string;
+    count: number;
+  }>();
+
+  // 6) Procedures: วิเคราะห์ case mix ตามหัตถการ (ไม่มี HN)
+  const proceduresSql = `
+    SELECT
+      date,
+      ward,
+      procedure_key,
+      procedure_label,
+      SUM(count) AS total_count
+    FROM procedures
+    WHERE date BETWEEN ? AND ?
+      AND (? IS NULL OR ward = ?)
+    GROUP BY date, ward, procedure_key, procedure_label
+    ORDER BY date ASC, ward ASC, total_count DESC
+  `;
+  const proceduresStmt = db.prepare(proceduresSql);
+  const procedures = await proceduresStmt.bind(...args).all<{
+    date: string;
+    ward: string;
+    procedure_key: string;
+    procedure_label: string;
+    total_count: number;
+  }>();
+
+  // 7) Ward beds: ความพร้อมเตียงแต่ละ ward (ไม่มี HN)
+  const bedsSql = `
+    SELECT
+      date,
+      ward,
+      beds
+    FROM ward_beds
+    WHERE date BETWEEN ? AND ?
+      AND (? IS NULL OR ward = ?)
+    ORDER BY date ASC, ward ASC
+  `;
+  const bedsStmt = db.prepare(bedsSql);
+  const beds = await bedsStmt.bind(...args).all<{
+    date: string;
+    ward: string;
+    beds: number;
+  }>();
+
   return {
     date_from: dateFrom,
     date_to: dateTo,
     ward: wardFilter,
     ipd_daily_summary: ipd.results || [],
     discharge_delay_daily: delay.results || [],
+    opd_daily_summary: opd.results || [],
+    er_daily_summary: er.results || [],
+    consult_daily_summary: consult.results || [],
+    procedures_daily_summary: procedures.results || [],
+    ward_beds_daily_summary: beds.results || [],
   };
 }
 
