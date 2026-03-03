@@ -256,6 +256,29 @@ async function fetchAggregatedMetrics(
     avg_los: number;
   }>();
 
+  // 1a) IPD ตามประเภทการนอน (stay_type) เพื่อแยก admit vs AO (admit observe)
+  const ipdTypeSql = `
+    SELECT
+      date(admit_date) AS date,
+      ward,
+      stay_type,
+      COUNT(*) AS stays,
+      ROUND(AVG(CASE WHEN los > 0 THEN los END), 1) AS avg_los
+    FROM ipd_stays
+    WHERE admit_date BETWEEN ? AND ?
+      AND (? IS NULL OR ward = ?)
+    GROUP BY date(admit_date), ward, stay_type
+    ORDER BY date ASC, ward ASC, stay_type ASC
+  `;
+  const ipdTypeStmt = db.prepare(ipdTypeSql);
+  const ipdByType = await ipdTypeStmt.bind(...args).all<{
+    date: string;
+    ward: string;
+    stay_type: string;
+    stays: number;
+    avg_los: number;
+  }>();
+
   // 2) Discharge delay: จาก discharge_plans
   const delaySql = `
     SELECT
@@ -369,6 +392,7 @@ async function fetchAggregatedMetrics(
     date_to: dateTo,
     ward: wardFilter,
     ipd_daily_summary: ipd.results || [],
+    ipd_staytype_summary: ipdByType.results || [],
     discharge_delay_daily: delay.results || [],
     opd_daily_summary: opd.results || [],
     er_daily_summary: er.results || [],
@@ -387,6 +411,13 @@ function buildSystemPrompt(context: unknown): string {
     "- You must NEVER request or hallucinate HN (hospital numbers), names, national IDs, or any directly identifiable PHI.",
     "- If the user asks for patient-level, identifiable, or re-identifiable information, you MUST politely refuse and explain that the system is analytics-only.",
     "- Assume that all data you see is already aggregated and non-identifiable.",
+    "",
+    "IMPORTANT DOMAIN NOTES ABOUT IPD DATA:",
+    "- The table ipd_stays contains a column stay_type with values like 'admit' and 'ao'.",
+    "- 'admit' means a true inpatient admission with an expected stay > 1 night (or clear inpatient treatment plan).",
+    "- 'ao' means 'admit observe': short observation stays (ประมาณ 1 วันแล้วกลับบ้าน ไม่ถือว่าเป็นการนอน รพ. เต็มรูปแบบ).",
+    "- When interpreting admissions and LOS, distinguish between full admissions and AO cases where appropriate.",
+    "- For high-level operational KPIs like bed occupancy or inpatient workload, focus more on 'admit' than 'ao', but you may mention AO volume separately for context.",
     "",
     "DATA YOU SEE (JSON):",
     JSON.stringify(context, null, 2),
