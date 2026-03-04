@@ -64,6 +64,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     });
   }
 
+  // Log successful chat usage event (เฉพาะคำถามที่ไม่ละเมิด PHI guardrail)
+  try {
+    await logUsageEvent(context.env, "chat");
+  } catch (err) {
+    console.error("usage log (chat) error", err);
+  }
+
   // Fetch aggregated metrics to provide as context (read-only; never reads HN)
   // ถ้า local D1 ยังไม่มี schema จะตอบแบบอธิบายให้ตั้งค่าแทนการ throw 500
   let metricsContext: unknown;
@@ -148,6 +155,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   return json({ answer });
 };
+
+async function logUsageEvent(env: Env, type: "chat" | "open") {
+  try {
+    await tursoExecute(
+      env,
+      "INSERT INTO usage_events (event_type, source) VALUES (?, ?)",
+      [type, "web"],
+    );
+  } catch (err) {
+    console.error("Turso usage log error", err);
+  }
+}
 
 async function tursoExecute(
   env: Env,
@@ -428,9 +447,12 @@ function buildSystemPrompt(context: unknown): string {
     "- Give practical, actionable suggestions for ward operations or quality improvement when appropriate.",
     "- If metrics are sparse or suppressed (for example '<5'), emphasize uncertainty and avoid over-interpretation.",
     "",
-    "STYLE:",
+    "STYLE (VERY IMPORTANT):",
     "- Answer in Thai.",
-    "- Be concise (ประมาณ 2–5 ย่อหน้า) และใช้ภาษาที่เข้าใจง่ายสำหรับแพทย์และพยาบาล.",
+    "- Keep the answer SHORT (ประมาณ 3–5 บรรทัด หรือไม่เกิน ~120 คำ).",
+    "- ใช้ bullet สั้น ๆ หรือประโยคสั้น ๆ ที่เข้าใจง่ายสำหรับแพทย์และพยาบาล.",
+    "- อนุญาตให้ใช้คำย่อที่คุ้นเคยในงานอายุรกรรม (เช่น LOS, admit, d/c, ICU, ER, OPD ฯลฯ) เพื่อประหยัดเนื้อหา แต่ให้คงความชัดเจน.",
+    "- หลีกเลี่ยงการเกริ่นนำยาว ๆ หรือสรุปซ้ำหลายรอบ ให้โฟกัสเฉพาะ insight สำคัญและข้อเสนอแนะหลักเท่านั้น.",
   ].join("\n");
 }
 
