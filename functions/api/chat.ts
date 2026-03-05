@@ -8,6 +8,8 @@ type Env = {
   SITE_PIN?: string;
   TURSO_HTTP_URL?: string;
   TURSO_AUTH_TOKEN?: string;
+  GROQ_API_KEY?: string;
+  GROQ_MODEL?: string;
 };
 
 interface ChatRequestBody {
@@ -93,68 +95,126 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     });
   }
 
-  // If OpenRouter is not configured, fail gracefully but do not expose raw data
-  const apiKeyToUse =
+  const systemPrompt = buildSystemPrompt(metricsContext);
+
+  // เลือกโมเดลหลักสำหรับ OpenRouter
+  const primaryModel =
+    adminOverrideAllowed && body.tempModel && body.tempModel.trim().length > 0
+      ? body.tempModel.trim()
+      : context.env.OPENROUTER_MODEL && context.env.OPENROUTER_MODEL.trim().length > 0
+        ? context.env.OPENROUTER_MODEL.trim()
+        : "mistralai/mistral-small-3.1-24b-instruct:free";
+
+  const openRouterKey =
     adminOverrideAllowed && body.tempApiKey && body.tempApiKey.trim().length > 0
       ? body.tempApiKey.trim()
       : context.env.OPENROUTER_API_KEY;
 
-  if (!apiKeyToUse) {
+  const groqKey = context.env.GROQ_API_KEY;
+  const groqModel =
+    context.env.GROQ_MODEL && context.env.GROQ_MODEL.trim().length > 0
+      ? context.env.GROQ_MODEL.trim()
+      : "llama-3.1-70b-versatile";
+
+  let answer: string | null = null;
+
+  // ชั้นที่ 1: ลอง OpenRouter ก่อน (ถ้ามี key)
+  if (openRouterKey) {
+    try {
+      answer = await callOpenRouter(primaryModel, openRouterKey, systemPrompt, question);
+    } catch (err) {
+      console.error("OpenRouter call failed, will try Groq fallback if available", err);
+    }
+  }
+
+  // ชั้นที่ 2: ถ้า OpenRouter ใช้ไม่ได้ และมี Groq key ให้ลอง Groq
+  if (!answer && groqKey) {
+    try {
+      answer = await callGroq(groqModel, groqKey, systemPrompt, question);
+    } catch (err) {
+      console.error("Groq fallback error", err);
+    }
+  }
+
+  if (!answer) {
     return json({
       answer:
-        "Backend ยังไม่ได้ตั้งค่า OPENROUTER_API_KEY จึงไม่สามารถเรียก AI ได้ แต่ metrics aggregation ทำงานตามปกติแล้วค่ะ",
+        "ตอนนี้ไม่สามารถเชื่อมต่อกับโมเดลภายนอก (OpenRouter / Groq) ได้ แต่ metrics backend ยังทำงานปกติค่ะ กรุณาลองใหม่อีกครั้งหรือแจ้งผู้ดูแลระบบ",
     });
   }
 
-  const systemPrompt = buildSystemPrompt(metricsContext);
+  return json({ answer });
+};
 
-  const model =
-    (adminOverrideAllowed && body.tempModel && body.tempModel.trim().length > 0
-      ? body.tempModel.trim()
-      : context.env.OPENROUTER_MODEL && context.env.OPENROUTER_MODEL.trim().length > 0
-        ? context.env.OPENROUTER_MODEL.trim()
-        : "mistralai/mistral-small-3.1-24b-instruct:free");
-
-  const completion = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+async function callOpenRouter(
+  model: string,
+  apiKey: string,
+  systemPrompt: string,
+  question: string,
+): Promise<string> {
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKeyToUse}`,
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model,
       messages: [
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-        {
-          role: "user",
-          content: question,
-        },
+        { role: "system", content: systemPrompt },
+        { role: "user", content: question },
       ],
       temperature: 0.2,
     }),
   });
 
-  if (!completion.ok) {
-    console.error("OpenRouter error", completion.status, await completion.text());
-    return json({
-      answer:
-        "ระบบไม่สามารถเชื่อมต่อกับ OpenRouter ได้ในขณะนี้ แต่ metrics backend ยังทำงานได้ตามปกติค่ะ",
-    });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error("OpenRouter error", res.status, text);
+    throw new Error(`OpenRouter error: ${res.status}`);
   }
 
-  const data = (await completion.json()) as {
+  const data = (await res.json()) as {
     choices?: { message?: { content?: string } }[];
   };
 
-  const answer =
-    data.choices?.[0]?.message?.content?.trim() ||
-    "ระบบไม่สามารถสร้างคำอธิบายได้ในตอนนี้ค่ะ";
+  return data.choices?.[0]?.message?.content?.trim() || "";
+}
 
-  return json({ answer });
-};
+async function callGroq(
+  model: string,
+  apiKey: string,
+  systemPrompt: string,
+  question: string,
+): Promise<string> {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: question },
+      ],
+      temperature: 0.2,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error("Groq error", res.status, text);
+    throw new Error(`Groq error: ${res.status}`);
+  }
+
+  const data = (await res.json()) as {
+    choices?: { message?: { content?: string } }[];
+  };
+
+  return data.choices?.[0]?.message?.content?.trim() || "";
+}
 
 async function logUsageEvent(env: Env, type: "chat" | "open") {
   try {
