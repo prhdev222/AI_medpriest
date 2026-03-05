@@ -6,27 +6,19 @@ type Env = {
 };
 
 // GET /api/usage/stats
-// คืนสถิติแบบเรียบง่าย เป็นจำนวนการเปิดหน้า (open) และการถาม AI (chat) แยกตามวัน
+// คืนเฉพาะผลรวม: จำนวนครั้งที่ถาม AI (chat) และเปิดหน้า (open) — ไม่แสดงรายการเหตุการณ์หรือคำถาม
 export const onRequest: PagesFunction<Env> = async (context) => {
   try {
     if (!context.env.TURSO_HTTP_URL || !context.env.TURSO_AUTH_TOKEN) {
       return json(
-        { error: "Turso not configured", data: [] },
+        { error: "Turso not configured", total_chat: 0, total_open: 0 },
         200,
       );
     }
 
     const result = await tursoExecute(
       context.env,
-      `
-      SELECT
-        date(created_at) AS date,
-        event_type,
-        COUNT(*) AS count
-      FROM usage_events
-      GROUP BY date, event_type
-      ORDER BY date DESC, event_type ASC
-      `,
+      `SELECT event_type, COUNT(*) AS cnt FROM usage_events GROUP BY event_type`,
     );
 
     const rows =
@@ -34,36 +26,30 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       result.response?.rows ??
       [];
 
-    // แปลงรูปแบบค่าจาก Turso ให้เป็น object เรียบง่ายสำหรับ frontend
-    const data = rows.map((row: any) => {
-      const v = row.values || [];
-      const dateCell = v[0] || {};
-      const typeCell = v[1] || {};
-      const countCell = v[2] || {};
+    let total_chat = 0;
+    let total_open = 0;
 
-      const date =
-        dateCell.text ??
-        dateCell.blob ??
-        (dateCell.integer != null ? String(dateCell.integer) : "");
+    const getCell = (cell: any): string =>
+      cell?.text ?? cell?.value ?? (cell?.integer != null ? String(cell.integer) : "") ?? "";
+    const getCount = (cell: any): number => {
+      const n = cell?.integer ?? (typeof cell?.text === "string" ? parseInt(cell.text, 10) : NaN);
+      return Number.isFinite(n) ? n : (typeof cell?.value === "string" ? parseInt(cell.value, 10) : 0) || 0;
+    };
 
-      const event_type =
-        typeCell.text ??
-        typeCell.blob ??
-        (typeCell.integer != null ? String(typeCell.integer) : "");
+    for (const row of rows) {
+      const v = row.values ?? (Array.isArray(row) ? row : []);
+      const typeCell = v[0] ?? {};
+      const countCell = v[1] ?? {};
+      const event_type = getCell(typeCell);
+      const count = getCount(countCell);
+      if (event_type === "chat") total_chat = count;
+      else if (event_type === "open") total_open = count;
+    }
 
-      const countRaw =
-        countCell.integer ??
-        (typeof countCell.text === "string" ? parseInt(countCell.text, 10) : 0);
-
-      const count = Number.isFinite(countRaw) ? Number(countRaw) : 0;
-
-      return { date, event_type, count };
-    });
-
-    return json({ data });
+    return json({ total_chat, total_open });
   } catch (err) {
     console.error("usage stats error", err);
-    return json({ error: "cannot load usage stats" }, 500);
+    return json({ error: "cannot load usage stats", total_chat: 0, total_open: 0 }, 500);
   }
 };
 

@@ -215,7 +215,7 @@
             </form>
           </div>
 
-          <!-- Usage stats table -->
+          <!-- Usage stats: แสดงเฉพาะผลรวมจำนวนครั้ง (ไม่แสดงเหตุการณ์หรือคำถาม) -->
           <div class="mt-6 space-y-2 text-[11px] md:text-xs">
             <div class="flex items-center justify-between gap-2">
               <h2 class="text-sm md:text-base font-semibold text-slate-200">
@@ -225,30 +225,17 @@
                 id="loadUsageStatsBtn"
                 class="rounded-md border border-slate-700 px-2 py-1 text-[10px] md:text-xs text-slate-200 hover:bg-slate-800"
               >
-                แสดงตารางสถิติ
+                แสดงสถิติ
               </button>
             </div>
             <div
               id="usageStatsContainer"
-              class="overflow-x-auto rounded-lg border border-slate-800 bg-slate-900/60 hidden"
+              class="rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2 hidden"
             >
-              <table class="min-w-full text-[10px] md:text-xs">
-                <thead class="bg-slate-900/80 border-b border-slate-800">
-                  <tr>
-                    <th class="px-2 py-1.5 text-left font-medium text-slate-300">วันที่</th>
-                    <th class="px-2 py-1.5 text-left font-medium text-slate-300">เหตุการณ์</th>
-                    <th class="px-2 py-1.5 text-right font-medium text-slate-300">จำนวนครั้ง</th>
-                  </tr>
-                </thead>
-                <tbody id="usageStatsBody" class="divide-y divide-slate-800 text-slate-200">
-                  <!-- rows เติมด้วย JS -->
-                </tbody>
-              </table>
+              <p id="usageStatsText" class="text-slate-200">
+                <!-- โหลดแล้วแสดง: ถาม AI แล้ว X ครั้ง -->
+              </p>
             </div>
-            <p class="text-[10px] md:text-[11px] text-slate-500">
-              * เหตุการณ์ <span class="font-semibold text-slate-200">open</span> คือการเปิดหน้าเว็บหลัก,
-              <span class="font-semibold text-slate-200">chat</span> คือการส่งคำถามถึง AI (ไม่เก็บข้อมูลผู้ป่วยใด ๆ)
-            </p>
           </div>
         </div>
       </main>
@@ -280,7 +267,7 @@
       const presetSelect = document.getElementById("presetSelect");
       const loadUsageStatsBtn = document.getElementById("loadUsageStatsBtn");
       const usageStatsContainer = document.getElementById("usageStatsContainer");
-      const usageStatsBody = document.getElementById("usageStatsBody");
+      const usageStatsText = document.getElementById("usageStatsText");
 
       let lastAssistantText = "";
 
@@ -363,13 +350,12 @@
       });
 
       loadUsageStatsBtn?.addEventListener("click", async () => {
-        if (!usageStatsBody || !usageStatsContainer) return;
+        if (!usageStatsText || !usageStatsContainer) return;
 
         const isVisible = !usageStatsContainer.classList.contains("hidden");
-        // ถ้าเปิดอยู่แล้ว ให้ซ่อนและไม่ต้องโหลดใหม่
         if (isVisible) {
           usageStatsContainer.classList.add("hidden");
-          loadUsageStatsBtn.textContent = "แสดงตารางสถิติ";
+          loadUsageStatsBtn.textContent = "แสดงสถิติ";
           return;
         }
 
@@ -379,40 +365,26 @@
         try {
           const res = await fetch("/api/usage/stats");
           const data = await res.json();
-          const rows = Array.isArray(data.data) ? data.data : [];
+          const totalChat = typeof data.total_chat === "number" ? data.total_chat : 0;
+          const totalOpen = typeof data.total_open === "number" ? data.total_open : 0;
 
-          if (!rows.length) {
-            usageStatsBody.innerHTML =
-              '<tr><td colspan="3" class="px-3 py-3 text-center text-slate-400">ยังไม่มีข้อมูลการใช้งาน</td></tr>';
-          } else {
-            usageStatsBody.innerHTML = rows
-              .map((row) => {
-                const date = row.date || "-";
-                const type = row.event_type === "chat"
-                  ? "ถาม AI (chat)"
-                  : row.event_type === "open"
-                    ? "เปิดหน้าเว็บ (open)"
-                    : row.event_type || "-";
-                const count = typeof row.count === "number" ? row.count : Number(row.count || 0);
-                return `
-                  <tr>
-                    <td class="px-3 py-2 whitespace-nowrap">${date}</td>
-                    <td class="px-3 py-2 whitespace-nowrap">${type}</td>
-                    <td class="px-3 py-2 text-right whitespace-nowrap">${count}</td>
-                  </tr>
-                `;
-              })
-              .join("");
-          }
+          usageStatsText.textContent = "";
+          const line1 = document.createElement("p");
+          line1.className = "text-slate-200";
+          line1.textContent = `ถาม AI แล้ว จำนวน ${totalChat} ครั้ง`;
+          usageStatsText.appendChild(line1);
+          const line2 = document.createElement("p");
+          line2.className = "text-slate-400 text-[10px] mt-0.5";
+          line2.textContent = `เปิดหน้านี้ ${totalOpen} ครั้ง`;
+          usageStatsText.appendChild(line2);
 
           usageStatsContainer.classList.remove("hidden");
-          loadUsageStatsBtn.textContent = "ซ่อนตารางสถิติ";
+          loadUsageStatsBtn.textContent = "ซ่อนสถิติ";
         } catch (err) {
           console.error("load usage stats error", err);
-          usageStatsBody.innerHTML =
-            '<tr><td colspan="3" class="px-3 py-3 text-center text-rose-400">โหลดสถิติไม่สำเร็จ โปรดตรวจสอบการเชื่อมต่อ Turso หรือ backend</td></tr>';
+          usageStatsText.textContent = "โหลดสถิติไม่สำเร็จ โปรดตรวจสอบการเชื่อมต่อ Turso หรือ backend";
           usageStatsContainer.classList.remove("hidden");
-          loadUsageStatsBtn.textContent = "ซ่อนตารางสถิติ";
+          loadUsageStatsBtn.textContent = "ซ่อนสถิติ";
         } finally {
           loadUsageStatsBtn.disabled = false;
         }
