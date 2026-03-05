@@ -29,7 +29,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       `,
     );
 
-    const rows = result.response?.rows ?? [];
+    const rows =
+      result.response?.result?.rows ??
+      result.response?.rows ??
+      [];
 
     // แปลงรูปแบบค่าจาก Turso ให้เป็น object เรียบง่ายสำหรับ frontend
     const data = rows.map((row: any) => {
@@ -74,11 +77,19 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+function tursoArgs(values: (string | number)[]): { type: string; value: string }[] {
+  return values.map((v) => ({
+    type: typeof v === "number" ? (Number.isInteger(v) ? "integer" : "float") : "text",
+    value: String(v),
+  }));
+}
+
 async function tursoExecute(env: Env, sql: string, args: (string | number)[] = []) {
   if (!env.TURSO_HTTP_URL || !env.TURSO_AUTH_TOKEN) {
     throw new Error("Turso not configured");
   }
-
+  const stmt: { sql: string; args?: { type: string; value: string }[] } = { sql };
+  if (args.length > 0) stmt.args = tursoArgs(args);
   const res = await fetch(env.TURSO_HTTP_URL.replace(/\/$/, "") + "/v2/pipeline", {
     method: "POST",
     headers: {
@@ -87,10 +98,7 @@ async function tursoExecute(env: Env, sql: string, args: (string | number)[] = [
     },
     body: JSON.stringify({
       requests: [
-        {
-          type: "execute",
-          stmt: { sql, args },
-        },
+        { type: "execute", stmt },
         { type: "close" },
       ],
     }),

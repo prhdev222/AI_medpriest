@@ -131,9 +131,9 @@
                 class="h-full flex flex-col items-center justify-center gap-3 text-center text-xs md:text-sm text-slate-400"
               >
                 <img
-                  src="/publics/PJDOC.png"
+                  src="/publics/MEDchart.png"
                   alt="MedPriest AI bot"
-                  class="h-20 md:h-24 w-auto max-w-[128px] object-contain opacity-90"
+                  class="h-24 md:h-28 w-auto max-w-[160px] object-contain opacity-90"
                 />
                 <p class="font-medium text-slate-100">ถามได้เลยครับ ผมจะช่วยวิเคราะห์ให้</p>
               </div>
@@ -157,7 +157,7 @@
                 id="chatInput"
                 rows="4"
                 placeholder="ถามเช่น: สถานการณ์ LOS เฉลี่ยของ ward MED2 7 วันที่ผ่านมามีแนวโน้มอย่างไร?"
-                class="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                class="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-base md:text-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
               ></textarea>
               <details class="rounded-md border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs md:text-sm text-slate-300">
                 <summary class="cursor-pointer select-none text-slate-300">
@@ -294,7 +294,7 @@
 
         const bubble = document.createElement("div");
         bubble.className =
-          "inline-block rounded-lg px-3 py-2 text-[13px] md:text-sm max-w-[90%] " +
+          "inline-block rounded-lg px-3 py-2 text-base md:text-lg max-w-[90%] " +
           (role === "user"
             ? "bg-emerald-500 text-slate-950"
             : "bg-slate-800 text-slate-50");
@@ -307,10 +307,10 @@
 
         if (role === "assistant") {
           const avatar = document.createElement("img");
-          avatar.src = "/publics/PJDOC.png";
+          avatar.src = "/publics/MEDchart.png";
           avatar.alt = "MedPriest AI bot";
           avatar.className =
-            "h-9 md:h-10 w-auto max-w-[48px] rounded-md bg-slate-900 flex-shrink-0 object-contain";
+            "h-11 md:h-12 w-auto max-w-[64px] rounded-md bg-slate-900 flex-shrink-0 object-contain";
           wrapper.appendChild(avatar);
           wrapper.appendChild(bubble);
         } else {

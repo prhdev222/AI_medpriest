@@ -168,6 +168,13 @@ async function logUsageEvent(env: Env, type: "chat" | "open") {
   }
 }
 
+function tursoArgs(values: (string | number)[]): { type: string; value: string }[] {
+  return values.map((v) => ({
+    type: typeof v === "number" ? (Number.isInteger(v) ? "integer" : "float") : "text",
+    value: String(v),
+  }));
+}
+
 async function tursoExecute(
   env: Env,
   sql: string,
@@ -176,6 +183,8 @@ async function tursoExecute(
   if (!env.TURSO_HTTP_URL || !env.TURSO_AUTH_TOKEN) {
     throw new Error("Turso not configured");
   }
+  const stmt: { sql: string; args?: { type: string; value: string }[] } = { sql };
+  if (args.length > 0) stmt.args = tursoArgs(args);
   const res = await fetch(env.TURSO_HTTP_URL.replace(/\/$/, "") + "/v2/pipeline", {
     method: "POST",
     headers: {
@@ -184,10 +193,7 @@ async function tursoExecute(
     },
     body: JSON.stringify({
       requests: [
-        {
-          type: "execute",
-          stmt: { sql, args },
-        },
+        { type: "execute", stmt },
         { type: "close" },
       ],
     }),
