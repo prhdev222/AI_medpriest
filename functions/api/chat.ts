@@ -103,7 +103,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ? body.tempModel.trim()
       : context.env.OPENROUTER_MODEL && context.env.OPENROUTER_MODEL.trim().length > 0
         ? context.env.OPENROUTER_MODEL.trim()
-        : "mistralai/mistral-small-3.1-24b-instruct:free";
+        : "mistralai/mistral-small-3.2-24b-instruct:free";
 
   const openRouterKey =
     adminOverrideAllowed && body.tempApiKey && body.tempApiKey.trim().length > 0
@@ -114,32 +114,42 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const groqModel =
     context.env.GROQ_MODEL && context.env.GROQ_MODEL.trim().length > 0
       ? context.env.GROQ_MODEL.trim()
-      : "llama-3.1-70b-versatile";
+      : "llama-3.3-70b-versatile";
 
   let answer: string | null = null;
+  let openRouterErr = "";
+  let groqErr = "";
 
   // ชั้นที่ 1: ลอง OpenRouter ก่อน (ถ้ามี key)
   if (openRouterKey) {
     try {
       answer = await callOpenRouter(primaryModel, openRouterKey, systemPrompt, question);
-    } catch (err) {
-      console.error("OpenRouter call failed, will try Groq fallback if available", err);
+    } catch (err: any) {
+      openRouterErr = err?.message || String(err);
+      console.error("OpenRouter failed:", openRouterErr);
     }
+  } else {
+    openRouterErr = "no OPENROUTER_API_KEY";
   }
 
   // ชั้นที่ 2: ถ้า OpenRouter ใช้ไม่ได้ และมี Groq key ให้ลอง Groq
   if (!answer && groqKey) {
     try {
       answer = await callGroq(groqModel, groqKey, systemPrompt, question);
-    } catch (err) {
-      console.error("Groq fallback error", err);
+    } catch (err: any) {
+      groqErr = err?.message || String(err);
+      console.error("Groq failed:", groqErr);
     }
+  } else if (!answer) {
+    groqErr = "no GROQ_API_KEY";
   }
 
   if (!answer) {
+    const debug = `OpenRouter(${primaryModel}): ${openRouterErr || "empty response"} | Groq(${groqModel}): ${groqErr || "empty response"}`;
+    console.error("All providers failed:", debug);
     return json({
       answer:
-        "ตอนนี้ไม่สามารถเชื่อมต่อกับโมเดลภายนอก (OpenRouter / Groq) ได้ แต่ metrics backend ยังทำงานปกติค่ะ กรุณาลองใหม่อีกครั้งหรือแจ้งผู้ดูแลระบบ",
+        `ตอนนี้ไม่สามารถเชื่อมต่อกับโมเดลภายนอก (OpenRouter / Groq) ได้ แต่ metrics backend ยังทำงานปกติค่ะ กรุณาลองใหม่อีกครั้งหรือแจ้งผู้ดูแลระบบ\n\n[debug: ${debug}]`,
     });
   }
 
@@ -261,7 +271,7 @@ async function tursoExecute(
   if (!res.ok) {
     throw new Error(`Turso HTTP error: ${res.status}`);
   }
-  const data = await res.json();
+  const data = (await res.json()) as { results?: Record<string, unknown>[] };
   return data.results?.[0] ?? {};
 }
 
