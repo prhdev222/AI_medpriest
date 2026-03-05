@@ -11,7 +11,12 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   try {
     if (!context.env.TURSO_HTTP_URL || !context.env.TURSO_AUTH_TOKEN) {
       return json(
-        { error: "Turso not configured", total_chat: 0, total_open: 0 },
+        {
+          error: "Turso not configured",
+          hint: "ตั้งค่า TURSO_HTTP_URL และ TURSO_AUTH_TOKEN ใน Cloudflare Pages → Settings → Environment variables",
+          total_chat: 0,
+          total_open: 0,
+        },
         200,
       );
     }
@@ -21,27 +26,34 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       `SELECT event_type, COUNT(*) AS cnt FROM usage_events GROUP BY event_type`,
     );
 
-    const rows =
-      result.response?.result?.rows ??
-      result.response?.rows ??
-      [];
+    const rawResult = result.response?.result ?? result.response;
+    const rows: any[] = Array.isArray(rawResult?.rows)
+      ? rawResult.rows
+      : [];
 
     let total_chat = 0;
     let total_open = 0;
 
-    const getCell = (cell: any): string =>
-      cell?.text ?? cell?.value ?? (cell?.integer != null ? String(cell.integer) : "") ?? "";
-    const getCount = (cell: any): number => {
+    const getCellText = (cell: any): string => {
+      if (cell == null) return "";
+      if (typeof cell === "string") return cell;
+      return cell?.text ?? cell?.value ?? (cell?.integer != null ? String(cell.integer) : "") ?? "";
+    };
+    const getCellInt = (cell: any): number => {
+      if (cell == null) return 0;
+      if (typeof cell === "number" && Number.isFinite(cell)) return cell;
       const n = cell?.integer ?? (typeof cell?.text === "string" ? parseInt(cell.text, 10) : NaN);
-      return Number.isFinite(n) ? n : (typeof cell?.value === "string" ? parseInt(cell.value, 10) : 0) || 0;
+      if (Number.isFinite(n)) return n;
+      const v = cell?.value;
+      return typeof v === "string" ? parseInt(v, 10) || 0 : 0;
     };
 
     for (const row of rows) {
-      const v = row.values ?? (Array.isArray(row) ? row : []);
-      const typeCell = v[0] ?? {};
-      const countCell = v[1] ?? {};
-      const event_type = getCell(typeCell);
-      const count = getCount(countCell);
+      const v = Array.isArray(row) ? row : row?.values ?? [];
+      const typeCell = v[0];
+      const countCell = v[1];
+      const event_type = getCellText(typeCell);
+      const count = getCellInt(countCell);
       if (event_type === "chat") total_chat = count;
       else if (event_type === "open") total_open = count;
     }
@@ -95,6 +107,8 @@ async function tursoExecute(env: Env, sql: string, args: (string | number)[] = [
   }
 
   const data = await res.json();
-  return data.results?.[0] ?? {};
+  const first = data.results?.[0];
+  if (first?.type === "error") throw new Error(first.error?.message ?? "Turso query error");
+  return first ?? {};
 }
 

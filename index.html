@@ -407,6 +407,12 @@
           line2.className = "text-slate-400 text-[10px] mt-0.5";
           line2.textContent = `เปิดหน้านี้ ${totalOpen} ครั้ง`;
           usageStatsText.appendChild(line2);
+          if (data.error && data.hint) {
+            const hint = document.createElement("p");
+            hint.className = "text-amber-400/90 text-[10px] mt-1";
+            hint.textContent = data.hint;
+            usageStatsText.appendChild(hint);
+          }
 
           usageStatsContainer.classList.remove("hidden");
           loadUsageStatsBtn.textContent = "ซ่อนสถิติ";
