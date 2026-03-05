@@ -59,69 +59,80 @@
             </div>
           </div>
 
-          <div class="space-y-3">
-            <h2 class="text-xl md:text-2xl font-semibold">MedPriest AI Chat</h2>
-            <p class="text-base md:text-lg text-slate-300">
-              พิมพ์คำถามเกี่ยวกับสถานการณ์ IPD/OPD หรือการ delay discharge ระบบจะอ่านเฉพาะตัวเลขรวมจาก database (ไม่อ่าน HN)
-            </p>
-            <div class="grid gap-3 md:grid-cols-2 text-xs md:text-sm">
-              <div class="space-y-1">
-                <label for="wardSelect" class="block text-slate-100 font-medium">เลือก ward / หน่วยบริการ</label>
-                <select
-                  id="wardSelect"
-                  class="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                >
-                  <option value="">ทุก ward</option>
-                  <option value="MED1">MED1</option>
-                  <option value="MED2">MED2</option>
-                  <option value="IMC">IMC</option>
-                  <option value="WARD90">WARD90</option>
-                  <option value="ICU">ICU</option>
-                  <option value="OPD">OPD</option>
-                  <option value="ER">ER</option>
-                  <option value="CONSULT">Consult</option>
-                </select>
-              </div>
-              <div class="space-y-1">
-                <label for="presetSelect" class="block text-slate-100 font-medium">คำถามยอดฮิต (KPI)</label>
-                <select
-                  id="presetSelect"
-                  class="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                >
-                  <option value="">-- เลือกคำถามยอดฮิต --</option>
-                  <option value="los_trend_7">
-                    แนวโน้ม LOS เฉลี่ย 7 วันล่าสุด
-                  </option>
-                  <option value="admit_discharge_7">
-                    จำนวน admit / discharge 7 วันล่าสุด
-                  </option>
-                  <option value="delay_overview_30">
-                    ภาพรวม delayed discharge 30 วัน
-                  </option>
-                  <option value="delay_reason">
-                    เหตุผลหลักที่ทำให้ discharge delay
-                  </option>
-                  <option value="icu_burden">
-                    ภาระงาน/ความหนาแน่นเตียง ICU ช่วงล่าสุด
-                  </option>
-                  <option value="opd_trend_30">
-                    แนวโน้ม OPD visit 30 วันล่าสุด
-                  </option>
-                  <option value="er_trend_30">
-                    แนวโน้ม ER visit 30 วันล่าสุด
-                  </option>
-                  <option value="consult_trend_30">
-                    แนวโน้ม consult เคส 30 วันล่าสุด
-                  </option>
-                  <option value="procedure_mix_30">
-                    mix ของหัตถการหลักใน 30 วันล่าสุด
-                  </option>
-                </select>
+          <div id="chatIntroSection" class="space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <h2 class="text-xl md:text-2xl font-semibold">MedPriest AI Chat</h2>
+              <button
+                type="button"
+                id="toggleIntroBtn"
+                class="rounded-md border border-slate-600 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
+              >
+                ซ่อน
+              </button>
+            </div>
+            <div id="chatIntroContent">
+              <p class="text-base md:text-lg text-slate-300">
+                พิมพ์คำถามเกี่ยวกับสถานการณ์ IPD/OPD หรือการ delay discharge ระบบจะอ่านเฉพาะตัวเลขรวมจาก database (ไม่อ่าน HN)
+              </p>
+              <div class="grid gap-3 md:grid-cols-2 text-xs md:text-sm mt-3">
+                <div class="space-y-1">
+                  <label for="wardSelect" class="block text-slate-100 font-medium">เลือก ward / หน่วยบริการ</label>
+                  <select
+                    id="wardSelect"
+                    class="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  >
+                    <option value="">ทุก ward</option>
+                    <option value="MED1">MED1</option>
+                    <option value="MED2">MED2</option>
+                    <option value="IMC">IMC</option>
+                    <option value="WARD90">WARD90</option>
+                    <option value="ICU">ICU</option>
+                    <option value="OPD">OPD</option>
+                    <option value="ER">ER</option>
+                    <option value="CONSULT">Consult</option>
+                  </select>
+                </div>
+                <div class="space-y-1">
+                  <label for="presetSelect" class="block text-slate-100 font-medium">คำถามยอดฮิต (KPI)</label>
+                  <select
+                    id="presetSelect"
+                    class="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  >
+                    <option value="">-- เลือกคำถามยอดฮิต --</option>
+                    <option value="los_trend_7">
+                      แนวโน้ม LOS เฉลี่ย 7 วันล่าสุด
+                    </option>
+                    <option value="admit_discharge_7">
+                      จำนวน admit / discharge 7 วันล่าสุด
+                    </option>
+                    <option value="delay_overview_30">
+                      ภาพรวม delayed discharge 30 วัน
+                    </option>
+                    <option value="delay_reason">
+                      เหตุผลหลักที่ทำให้ discharge delay
+                    </option>
+                    <option value="icu_burden">
+                      ภาระงาน/ความหนาแน่นเตียง ICU ช่วงล่าสุด
+                    </option>
+                    <option value="opd_trend_30">
+                      แนวโน้ม OPD visit 30 วันล่าสุด
+                    </option>
+                    <option value="er_trend_30">
+                      แนวโน้ม ER visit 30 วันล่าสุด
+                    </option>
+                    <option value="consult_trend_30">
+                      แนวโน้ม consult เคส 30 วันล่าสุด
+                    </option>
+                    <option value="procedure_mix_30">
+                      mix ของหัตถการหลักใน 30 วันล่าสุด
+                    </option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col h-[520px] md:h-[560px]">
+          <div id="chatBox" class="rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col h-[520px] md:h-[560px] mt-4">
             <div
               id="chatMessages"
               class="flex-1 overflow-auto p-3 space-y-2 text-xs scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900"
@@ -268,6 +279,25 @@
       const loadUsageStatsBtn = document.getElementById("loadUsageStatsBtn");
       const usageStatsContainer = document.getElementById("usageStatsContainer");
       const usageStatsText = document.getElementById("usageStatsText");
+      const toggleIntroBtn = document.getElementById("toggleIntroBtn");
+      const chatIntroContent = document.getElementById("chatIntroContent");
+      const chatBox = document.getElementById("chatBox");
+
+      let introHidden = false;
+
+      toggleIntroBtn?.addEventListener("click", () => {
+        introHidden = !introHidden;
+        if (chatIntroContent) chatIntroContent.classList.toggle("hidden", introHidden);
+        if (toggleIntroBtn) toggleIntroBtn.textContent = introHidden ? "แสดง" : "ซ่อน";
+        if (chatBox) {
+          chatBox.classList.toggle("h-[620px]", introHidden);
+          chatBox.classList.toggle("md:h-[700px]", introHidden);
+          chatBox.classList.toggle("h-[520px]", !introHidden);
+          chatBox.classList.toggle("md:h-[560px]", !introHidden);
+          chatBox.classList.toggle("mt-1", introHidden);
+          chatBox.classList.toggle("mt-4", !introHidden);
+        }
+      });
 
       let lastAssistantText = "";
 
